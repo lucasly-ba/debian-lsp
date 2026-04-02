@@ -18,6 +18,7 @@ mod deb822;
 mod distros;
 mod maintainers;
 mod package_cache;
+mod patches_series;
 mod popcon;
 mod position;
 mod rdeps;
@@ -74,6 +75,8 @@ enum FileType {
     UpstreamMetadata,
     /// debian/rules file
     Rules,
+    /// debian/patches/series file
+    PatchesSeries,
 }
 
 impl FileType {
@@ -97,6 +100,8 @@ impl FileType {
             Some(Self::UpstreamMetadata)
         } else if rules::is_rules_file(uri) {
             Some(Self::Rules)
+        } else if patches_series::is_patches_series_file(uri) {
+            Some(Self::PatchesSeries)
         } else {
             None
         }
@@ -145,6 +150,7 @@ impl Backend {
             | FileType::SourceFormat
             | FileType::SourceOptions
             | FileType::UpstreamMetadata
+            | FileType::PatchesSeries
             | FileType::Rules => None,
         }
     }
@@ -621,6 +627,12 @@ impl LanguageServer for Backend {
                 let makefile = parsed.tree();
                 rules::get_completions(&makefile, &source_text, position)
             }
+            Some((FileType::PatchesSeries, source_file)) => {
+                let workspace = self.workspace.lock().await;
+                let source_text = workspace.source_text(source_file);
+                let parsed = workspace.get_parsed_patches_series(source_file);
+                patches_series::get_completions(&uri, &parsed, &source_text, position)
+            }
             None => Vec::new(),
         };
 
@@ -991,6 +1003,7 @@ impl LanguageServer for Backend {
             }
             FileType::SourceFormat => vec![],
             FileType::SourceOptions => source_options::generate_semantic_tokens(&source_text),
+            FileType::PatchesSeries => vec![],
         };
 
         if tokens.is_empty() {

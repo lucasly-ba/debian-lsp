@@ -57,9 +57,10 @@ export function activate(context: ExtensionContext) {
       { scheme: 'file', language: 'debsourceoptions' },
       { scheme: 'file', language: 'debupstreammetadata' },
       { scheme: 'file', language: 'debrules' },
+      { scheme: 'file', language: 'debpatches' },
     ],
     synchronize: {
-      fileEvents: workspace.createFileSystemWatcher('**/debian/{control,copyright,watch,changelog,tests/control,source/format,source/options,source/local-options,upstream/metadata,rules}')
+      fileEvents: workspace.createFileSystemWatcher('**/debian/{control,copyright,watch,changelog,tests/control,source/format,source/options,source/local-options,upstream/metadata,rules,patches/series}')
     }
   };
 
