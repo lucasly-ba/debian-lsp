@@ -152,6 +152,8 @@ enum FileType {
     Install,
     /// debian/not-installed or debian/<package>.not-installed file
     NotInstalled,
+    /// debian/links or debian/<package>.links file
+    Links,
 }
 
 impl FileType {
@@ -203,6 +205,8 @@ impl FileType {
             Some(Self::Install)
         } else if debhelper::not_installed::is_not_installed_file(uri) {
             Some(Self::NotInstalled)
+        } else if debhelper::links::is_links_file(uri) {
+            Some(Self::Links)
         } else {
             None
         }
@@ -505,7 +509,8 @@ impl Backend {
             | FileType::Info
             | FileType::Manpages
             | FileType::Install
-            | FileType::NotInstalled => None,
+            | FileType::NotInstalled
+            | FileType::Links => None,
         }
     }
 
@@ -572,7 +577,8 @@ impl Backend {
             | FileType::Info
             | FileType::Manpages
             | FileType::Install
-            | FileType::NotInstalled => Vec::new(),
+            | FileType::NotInstalled
+            | FileType::Links => Vec::new(),
         }
     }
 
@@ -1553,6 +1559,13 @@ impl LanguageServer for Backend {
                     debian_dir.as_deref(),
                 )
             }
+            Some((FileType::Links, source_file)) => {
+                let workspace = self.workspace_clone().await;
+                let source_text = workspace.source_text(source_file);
+                let package_dir =
+                    Self::find_debian_dir(&uri).map(|d| debhelper::links::package_dir(&d, &uri));
+                debhelper::links::get_completions(&source_text, position, package_dir.as_deref())
+            }
             None => Vec::new(),
         };
 
@@ -2169,7 +2182,8 @@ impl LanguageServer for Backend {
             | FileType::Info
             | FileType::Manpages
             | FileType::Install
-            | FileType::NotInstalled => debhelper::semantic::generate_semantic_tokens(src),
+            | FileType::NotInstalled
+            | FileType::Links => debhelper::semantic::generate_semantic_tokens(src),
             FileType::Triggers => triggers::generate_semantic_tokens(src),
         };
 
