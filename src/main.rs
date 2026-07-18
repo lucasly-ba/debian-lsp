@@ -150,6 +150,8 @@ enum FileType {
     Manpages,
     /// debian/install or debian/<package>.install file
     Install,
+    /// debian/not-installed or debian/<package>.not-installed file
+    NotInstalled,
 }
 
 impl FileType {
@@ -199,6 +201,8 @@ impl FileType {
             Some(Self::Manpages)
         } else if debhelper::install::is_install_file(uri) {
             Some(Self::Install)
+        } else if debhelper::not_installed::is_not_installed_file(uri) {
+            Some(Self::NotInstalled)
         } else {
             None
         }
@@ -500,7 +504,8 @@ impl Backend {
             | FileType::Clean
             | FileType::Info
             | FileType::Manpages
-            | FileType::Install => None,
+            | FileType::Install
+            | FileType::NotInstalled => None,
         }
     }
 
@@ -566,7 +571,8 @@ impl Backend {
             | FileType::Clean
             | FileType::Info
             | FileType::Manpages
-            | FileType::Install => Vec::new(),
+            | FileType::Install
+            | FileType::NotInstalled => Vec::new(),
         }
     }
 
@@ -1537,6 +1543,16 @@ impl LanguageServer for Backend {
                 let debian_dir = Self::find_debian_dir(&uri);
                 debhelper::install::get_completions(&source_text, position, debian_dir.as_deref())
             }
+            Some((FileType::NotInstalled, source_file)) => {
+                let workspace = self.workspace_clone().await;
+                let source_text = workspace.source_text(source_file);
+                let debian_dir = Self::find_debian_dir(&uri);
+                debhelper::not_installed::get_completions(
+                    &source_text,
+                    position,
+                    debian_dir.as_deref(),
+                )
+            }
             None => Vec::new(),
         };
 
@@ -2152,7 +2168,8 @@ impl LanguageServer for Backend {
             | FileType::Clean
             | FileType::Info
             | FileType::Manpages
-            | FileType::Install => debhelper::semantic::generate_semantic_tokens(src),
+            | FileType::Install
+            | FileType::NotInstalled => debhelper::semantic::generate_semantic_tokens(src),
             FileType::Triggers => triggers::generate_semantic_tokens(src),
         };
 

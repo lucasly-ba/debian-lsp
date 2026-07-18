@@ -8,6 +8,7 @@ pub mod examples;
 pub mod info;
 pub mod install;
 pub mod manpages;
+pub mod not_installed;
 pub mod parser;
 pub mod semantic;
 pub mod source;
